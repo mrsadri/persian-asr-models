@@ -17,8 +17,9 @@ Rebuilt by `.github/workflows/mirror.yml` (run it from the Actions tab).
 
 CPU-only scripts (sherpa-onnx) used by a Claude skill to transcribe Persian
 meeting recordings: ffmpeg clean-up, Silero VAD, Shenava ASR (Whisper fallback),
-optional speaker labels, and a compact transcript with glossary fixes.
+speaker detection (who spoke when, optional known-voice matching), and a compact
+transcript with glossary fixes.
 
 ```bash
-bash skill/scripts/run.sh meeting.m4a --out out/ [--speakers N] [--glossary my-terms.txt]
+bash skill/scripts/run.sh meeting.m4a --out out/ [--speakers auto|N] [--voiceprints known.json] [--glossary my-terms.txt]
 ```

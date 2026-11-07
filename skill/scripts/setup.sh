@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Idempotent setup: Python deps + models into ~/.cache/pmt-models.
-# Usage: bash setup.sh [shenava|whisper|diarize|all]   (default: shenava)
+# Usage: bash setup.sh [shenava|whisper|speakers|all]   (default: shenava)
 # All downloads come from GitHub Releases (Hugging Face / OpenAI are blocked
 # in Claude's sandbox). Safe to re-run; skips what already exists.
 set -euo pipefail
@@ -36,9 +36,7 @@ if [[ "$WHAT" == whisper || "$WHAT" == all ]]; then
     find sherpa-onnx-whisper-turbo -name "*.onnx" ! -name "*int8*" -delete
   fi
 fi
-if [[ "$WHAT" == diarize || "$WHAT" == all ]]; then
-  [ -s sherpa-onnx-pyannote-segmentation-3-0/model.int8.onnx ] || \
-    curl -fsSL $K2/speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2 | tar xj
+if [[ "$WHAT" == speakers || "$WHAT" == all ]]; then
   get $K2/speaker-recongition-models/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx campplus.onnx
 fi
 echo "READY ($WHAT) in $M"; ls "$M"

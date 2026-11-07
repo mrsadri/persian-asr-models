@@ -113,9 +113,19 @@ def main():
     ap.add_argument("--extra-glossary", default=None, help="second glossary file (session-specific)")
     ap.add_argument("--para-sec", type=float, default=60)
     ap.add_argument("--no-itn", action="store_true")
+    ap.add_argument("--turns", default=None, help="speakers.py JSON (adds speaker stats header)")
+    ap.add_argument("--names", default=None, help='JSON {"1": "مسیح (Design Lead)", ...} to label speakers')
     a = ap.parse_args()
 
     rules = load_glossary(a.glossary) + load_glossary(a.extra_glossary)
+    spk_info = json.load(open(a.turns, encoding="utf-8"))["speakers"] if a.turns and os.path.exists(a.turns) else {}
+    names = json.load(open(a.names, encoding="utf-8")) if a.names and os.path.exists(a.names) else {}
+    def label(k):
+        k = str(k)
+        if k in names:
+            return names[k]
+        m = spk_info.get(k, {}).get("match")
+        return f"S{k} ({m})" if m else f"S{k}"
     rows = sorted((json.loads(l) for l in open(a.jsonl, encoding="utf-8") if l.strip()), key=lambda r: r["i"])
     base = a.jsonl.replace(".segments.jsonl", "")
     name = os.path.basename(base)
@@ -128,7 +138,7 @@ def main():
             continue
         raw_words += len(t.split())
         spk = r.get("spk")
-        tag = f"S{spk}: " if spk else ""
+        tag = f"{label(spk)}: " if spk else ""
         g = zwnj(apply_glossary(t, rules))
         verb_lines.append(f"[{stamp(r['start'])}] {tag}{g}")
         c = dedupe(g)
@@ -149,8 +159,14 @@ def main():
         fh.write(f"# {name} (verbatim)\n\n" + "\n".join(verb_lines) + "\n")
     with open(base + ".transcript.md", "w", encoding="utf-8") as fh:
         fh.write(f"# {name}\n\nDuration: {stamp(dur)} | auto-transcribed, may contain errors\n\n")
+        if spk_info:
+            fh.write("| Speaker | Talk time | Voice match |\n|---|---|---|\n")
+            for k, v in spk_info.items():
+                vm = f"{v['match']} ({v['sim']})" if v.get("match") else (f"none (best {v['sim']})" if v.get("sim") else "-")
+                fh.write(f"| {label(k)} | {stamp(v['seconds'])} ({int(v['share']*100)}%) | {vm} |\n")
+            fh.write("\n")
         for st, spk, txt in paras:
-            fh.write(f"[{stamp(st)}] {'S'+str(spk)+': ' if spk else ''}{txt}\n\n")
+            fh.write(f"[{stamp(st)}] {label(spk)+': ' if spk else ''}{txt}\n\n")
     comp_words = sum(len(t.split()) for _, _, t in paras)
     print(f"segments={len(rows)} duration={stamp(dur)} raw_words={raw_words} "
           f"compact_words={comp_words} (~{int(comp_words*2.2)} tokens to read)")

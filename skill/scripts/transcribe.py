@@ -55,19 +55,24 @@ def vad_segments(samples, vad_model, max_len):
     for i in range(0, len(samples), win):
         vad.accept_waveform(samples[i:i + win]); drain()
     vad.flush(); drain()
-    # Silero sometimes returns segments longer than max_len; split them at the
-    # quietest 0.2 s window in the last 40% of each piece.
+    return split_long(segs, max_len)
+
+
+def split_long(segs, max_len, extra=None):
+    """Split pieces longer than max_len at the quietest 0.2 s window in their last 40%.
+    segs: [(start_sample, samples)]; extra: parallel list of tags (e.g. speaker)."""
     out, hop = [], int(0.2 * SR)
-    for start, s in segs:
+    for n_, (start, s) in enumerate(segs):
+        tag = extra[n_] if extra else None
         while len(s) > max_len * SR:
             lo, hi = int(max_len * 0.6 * SR), int(max_len * SR)
             win = s[lo:hi]
             n = len(win) // hop
             energy = [float(np.mean(win[k*hop:(k+1)*hop] ** 2)) for k in range(n)]
             cut = lo + int(np.argmin(energy)) * hop + hop // 2
-            out.append((start, s[:cut])); start += cut; s = s[cut:]
+            out.append((start, s[:cut], tag)); start += cut; s = s[cut:]
         if len(s) > 0.3 * SR:
-            out.append((start, s))
+            out.append((start, s, tag))
     return out
 
 
@@ -94,6 +99,7 @@ def main():
     ap.add_argument("--threads", type=int, default=os.cpu_count() or 2)
     ap.add_argument("--max-minutes", type=float, default=None, help="only first N minutes (tests)")
     ap.add_argument("--batch", type=int, default=8)
+    ap.add_argument("--turns", default=None, help="speakers.py JSON: transcribe per speaker turn")
     a = ap.parse_args()
 
     name = os.path.splitext(os.path.basename(a.audio))[0]
@@ -108,9 +114,16 @@ def main():
     log(f"audio {dur*a.tempo/60:.1f} min (processed {dur/60:.1f} min at tempo {a.tempo})", logf)
 
     max_len = 20 if a.engine == "whisper" else 15
-    segs = vad_segments(samples, os.path.join(a.models, "silero_vad.onnx"), max_len)
-    speech = sum(len(s) for _, s in segs) / SR
-    log(f"VAD: {len(segs)} segments, speech {speech/60:.1f} min ({100*speech/max(dur,1):.0f}% kept)", logf)
+    if a.turns:
+        if abs(a.tempo - 1.0) > 1e-3:
+            sys.exit("--turns cannot be combined with --tempo")
+        turns = json.load(open(a.turns, encoding="utf-8"))["turns"]
+        raw = [(int(st * SR), samples[int(st * SR):int(en * SR)]) for st, en, _ in turns]
+        segs = split_long(raw, max_len, [k for _, _, k in turns])
+    else:
+        segs = vad_segments(samples, os.path.join(a.models, "silero_vad.onnx"), max_len)
+    speech = sum(len(s) for _, s, _ in segs) / SR
+    log(f"{'speaker turns' if a.turns else 'VAD'}: {len(segs)} pieces, speech {speech/60:.1f} min ({100*speech/max(dur,1):.0f}% kept)", logf)
 
     done = set()
     if os.path.exists(jl_path):
@@ -120,20 +133,22 @@ def main():
         if done: log(f"resuming: {len(done)} segments already done", logf)
 
     rec = make_recognizer(a.engine, a.models, a.threads)
-    todo = [(i, st, s) for i, (st, s) in enumerate(segs) if i not in done]
+    todo = [(i, st, s, k) for i, (st, s, k) in enumerate(segs) if i not in done]
     jl = open(jl_path, "a", encoding="utf-8")
     t1 = time.time(); proc = 0.0
     for b in range(0, len(todo), a.batch):
         chunk = todo[b:b + a.batch]
         streams = []
-        for _, _, s in chunk:
+        for _, _, s, _ in chunk:
             st = rec.create_stream(); st.accept_waveform(SR, s); streams.append(st)
         rec.decode_streams(streams)
-        for (i, start, s), st in zip(chunk, streams):
+        for (i, start, s, k), st in zip(chunk, streams):
             txt = st.result.text.strip()
-            jl.write(json.dumps({"i": i, "start": round(start / SR * a.tempo, 2),
-                                 "end": round((start + len(s)) / SR * a.tempo, 2),
-                                 "text": txt}, ensure_ascii=False) + "\n")
+            row = {"i": i, "start": round(start / SR * a.tempo, 2),
+                   "end": round((start + len(s)) / SR * a.tempo, 2), "text": txt}
+            if k is not None:
+                row["spk"] = k
+            jl.write(json.dumps(row, ensure_ascii=False) + "\n")
             proc += len(s) / SR
         jl.flush()
         el = time.time() - t1
