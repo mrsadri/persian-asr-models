@@ -120,10 +120,10 @@ def main():
     rules = load_glossary(a.glossary) + load_glossary(a.extra_glossary)
     spk_info = json.load(open(a.turns, encoding="utf-8"))["speakers"] if a.turns and os.path.exists(a.turns) else {}
     names = json.load(open(a.names, encoding="utf-8")) if a.names and os.path.exists(a.names) else {}
-    def label(k):
+    def label(k, full=False):
         k = str(k)
-        if k in names:
-            return names[k]
+        if k in names:   # body lines get the short form: text before " ("
+            return names[k] if full else names[k].split(" (")[0]
         m = spk_info.get(k, {}).get("match")
         return f"S{k} ({m})" if m else f"S{k}"
     rows = sorted((json.loads(l) for l in open(a.jsonl, encoding="utf-8") if l.strip()), key=lambda r: r["i"])
@@ -163,7 +163,7 @@ def main():
             fh.write("| Speaker | Talk time | Voice match |\n|---|---|---|\n")
             for k, v in spk_info.items():
                 vm = f"{v['match']} ({v['sim']})" if v.get("match") else (f"none (best {v['sim']})" if v.get("sim") else "-")
-                fh.write(f"| {label(k)} | {stamp(v['seconds'])} ({int(v['share']*100)}%) | {vm} |\n")
+                fh.write(f"| {label(k, True)} | {stamp(v['seconds'])} ({int(v['share']*100)}%) | {vm} |\n")
             fh.write("\n")
         for st, spk, txt in paras:
             fh.write(f"[{stamp(st)}] {label(spk)+': ' if spk else ''}{txt}\n\n")
