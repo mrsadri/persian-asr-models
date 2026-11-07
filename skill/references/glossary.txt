@@ -1,0 +1,50 @@
+# Generic glossary: English work terms and insurance terms often misheard in Persian meetings.
+# Format:  correct form | misheard variant, misheard variant, ...
+# Variants are matched as whole words (spaces/ZWNJ tolerant). Lines starting with # are ignored.
+# Add a line whenever a transcript gets a name or term wrong twice.
+
+بله | بعله
+
+# English work terms (Latin script, as Masih prefers)
+Figma | فیگما, فیگمه
+Jira | جیرا, جیرو
+PRD | پی آر دی, پی‌آر‌دی, پیاردی
+PM | پی ام, پی‌ام
+user story | یوزر استوری, یوزراستوری
+MoSCoW | ماسکو
+grooming | گرومینگ, گروومینگ
+inspection | انسپیکشن, اینسپیکشن, انسپکشن, اینسپکشن, اینستکشن, اینپکشن, انسفیکشن, اینسپشکن
+agent | ایجنت, ایجنط
+user | یوزر
+state | استیت, استییت, استیتش, استیتا, استی تر
+submit | سابمیت, سبمیت
+ثبت | سبت, سبتی
+flow | فلو
+design system | دیزاین سیستم, دیزاین‌سیستم
+prototype | پروتوتایپ, پروتو تایپ
+wireframe | وایرفریم, وایر فریم
+dashboard | داشبورد
+feedback | فیدبک, فید بک
+deadline | ددلاین, دد لاین
+sprint | اسپرینت
+backlog | بک لاگ, بکلاگ
+release | ریلیز
+
+# Added from the first real meetings (Nov 2026)
+بیمه بدنه | بیم بدنه, بیمه بدن
+بیمه | بی مه
+بازدید | بازیدید
+لجستیک | لوژستیک
+design | دیزاین
+product | پروداکت
+process | پروسس
+stage | استیج
+comment | کامنت
+data | دیتا
+not clean | نات کلین
+ثالث | سالالث, سالث, ثالس, سالالس
+ثالثش | سالالثش, سالثش
+QA | کیو ای, کیوای
+QC | کیو سی, کیوسی
+SLA | اسله, اس ال ای, اس‌ال‌ای
+operation | آپریشن, اپریشن

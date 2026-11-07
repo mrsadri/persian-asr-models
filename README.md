@@ -12,3 +12,13 @@ from GitHub Releases in environments where Hugging Face is not reachable.
 Source: [Reza2kn/Shenava-Koochik-v1.0-sherpa-onnx](https://huggingface.co/Reza2kn/Shenava-Koochik-v1.0-sherpa-onnx), Apache-2.0. All credit to the original authors.
 
 Rebuilt by `.github/workflows/mirror.yml` (run it from the Actions tab).
+
+## `skill/`: Persian meeting transcription pipeline
+
+CPU-only scripts (sherpa-onnx) used by a Claude skill to transcribe Persian
+meeting recordings: ffmpeg clean-up, Silero VAD, Shenava ASR (Whisper fallback),
+optional speaker labels, and a compact transcript with glossary fixes.
+
+```bash
+bash skill/scripts/run.sh meeting.m4a --out out/ [--speakers N] [--glossary my-terms.txt]
+```
