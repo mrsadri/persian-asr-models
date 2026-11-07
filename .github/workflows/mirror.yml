@@ -1,0 +1,25 @@
+name: Mirror Shenava model to Releases
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [".github/workflows/mirror.yml", "scripts/build.py"]
+permissions:
+  contents: write
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q huggingface_hub onnx onnxruntime
+      - run: python scripts/build.py
+      - name: Publish release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh release delete shenava-koochik-v1.0 --yes --cleanup-tag || true
+          gh release create shenava-koochik-v1.0 \
+            shenava-koochik-v1.0-int8.tar.bz2 shenava-koochik-v1.0-fp32.onnx \
+            --title "Shenava Koochik v1.0 (sherpa-onnx)" \
+            --notes "Mirror of Reza2kn/Shenava-Koochik-v1.0-sherpa-onnx (Apache-2.0) plus an int8 MatMul-quantized copy for CPU. Original: https://huggingface.co/Reza2kn/Shenava-Koochik-v1.0-sherpa-onnx"
